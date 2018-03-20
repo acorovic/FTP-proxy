@@ -6,6 +6,11 @@ ProxyServ::ProxyServ(QObject *parent) : QObject(parent)
 
     connect(server, SIGNAL(newConnection()), this, SLOT(browserConnected()));
 
+    listenForConnections();
+}
+
+void ProxyServ::listenForConnections()
+{
     if (!server->listen(QHostAddress::Any, 21))
     {
         qDebug() << "Server coudln't start";
@@ -25,7 +30,7 @@ void ProxyServ::browserConnected()
     socket = server->nextPendingConnection();
 
     connect(socket, SIGNAL(disconnected()), this, SLOT(browserDisconnected()));
-    connect(socket, SIGNAL(bytesWritten(qint64)), this, SLOT(browserWritten(qint64)));
+    connect(socket, SIGNAL(readyRead()), this, SLOT(readBrowserData()));
 
     emit notifyBrowserConnected();
 }
@@ -33,12 +38,29 @@ void ProxyServ::browserConnected()
 void ProxyServ::browserDisconnected()
 {
     qDebug() << "Browser disconnected";
-    socket->close();
+    //socket->close();
 
-    delete socket;
+    //listenForConnections();
 }
 
-void ProxyServ::browserWritten(qint64)
+void ProxyServ::readBrowserData()
 {
-    qDebug() << socket->readAll();
+    QByteArray receivedData;
+
+    qDebug() << "Received from FTP client:";
+    receivedData = socket->readAll();
+    qDebug() << receivedData;
+
+    emit toProxyClient(receivedData);
 }
+
+void ProxyServ::readProxyClientData(QByteArray data)
+{
+
+    //qDebug() << "FTP proxyServ forwarding to client:";
+    //qDebug() << data;
+
+    socket->write(data);
+    socket->flush();
+}
+

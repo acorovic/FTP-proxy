@@ -13,13 +13,17 @@ class ProxyServ : public QObject
 public:
     explicit ProxyServ(QObject *parent = nullptr);
 
+    void listenForConnections();
+
 signals:
     void notifyBrowserConnected();
+    void toProxyClient(QByteArray);
 
 public slots:
     void browserConnected();
     void browserDisconnected();
-    void browserWritten(qint64);
+    void readBrowserData();
+    void readProxyClientData(QByteArray data);
 
 private:
     QTcpServer* server{NULL};

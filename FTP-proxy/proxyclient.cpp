@@ -29,11 +29,24 @@ void ProxyClient::disconnectedFtpServer()
 {
     qDebug() << "Disconnected from FTP server!";
 
-    delete socket;
+    //delete socket;
+
+    //connectToFtpServer();
 }
 
 void ProxyClient::readServerData()
 {
-    qDebug() << "Server written:";
-    qDebug() << socket->readAll();
+    QByteArray receivedData;
+
+    qDebug() << "Received from FTP server:";
+    receivedData = socket->readAll();
+    qDebug() << receivedData;
+
+    emit toProxyServer(receivedData);
+}
+
+void ProxyClient::readProxyServerData(QByteArray data)
+{
+    socket->write(data);
+    socket->flush();
 }
