@@ -30,7 +30,7 @@ void ProxyServ::browserConnected()
     socket = server->nextPendingConnection();
 
     connect(socket, SIGNAL(disconnected()), this, SLOT(browserDisconnected()));
-    connect(socket, SIGNAL(readyRead()), this, SLOT(readBrowserData()));
+    connect(socket, SIGNAL(readyRead()), this, SLOT(readBrowserCommand()));
 
     emit notifyBrowserConnected();
 }
@@ -43,7 +43,7 @@ void ProxyServ::browserDisconnected()
     //listenForConnections();
 }
 
-void ProxyServ::readBrowserData()
+void ProxyServ::readBrowserCommand()
 {
     QByteArray receivedData;
 
@@ -51,10 +51,10 @@ void ProxyServ::readBrowserData()
     receivedData = socket->readAll();
     qDebug() << receivedData;
 
-    emit toProxyClient(receivedData);
+    emit toProxyClientCommand(receivedData);
 }
 
-void ProxyServ::readProxyClientData(QByteArray data)
+void ProxyServ::readProxyClientCommand(QByteArray data)
 {
 
     //qDebug() << "FTP proxyServ forwarding to client:";
@@ -62,5 +62,63 @@ void ProxyServ::readProxyClientData(QByteArray data)
 
     socket->write(data);
     socket->flush();
+
+    if (data.contains("Transfer complete"))
+    {
+        qDebug() << "Closing data socket for the browser!";
+        dataSocket->close();
+        dataServer->close();
+        //delete dataServer;
+    }
+}
+
+void ProxyServ::readProxyClientData(QByteArray data)
+{
+    dataSocket->write(data);
+    dataSocket->flush();
+}
+
+void ProxyServ::createDataServ(int portNo)
+{
+    if (dataServer != NULL)
+    {
+        delete dataServer;
+    }
+
+    dataServer = new QTcpServer(this);
+
+    connect(dataServer, SIGNAL(newConnection()), this, SLOT(browserDataConnected()));
+
+    qDebug() << "New data portNo : " << portNo;
+
+    // Change to listen to specific ip address from message
+    if (!dataServer->listen(QHostAddress::Any, portNo))
+    {
+        qDebug() << "DataServer coudln't start";
+    }
+    else
+    {
+        qDebug() << "DataServer started";
+    }
+}
+
+void ProxyServ::browserDataConnected()
+{
+    qDebug() << "Data connection with browser established!";
+
+    dataSocket = dataServer->nextPendingConnection();
+
+    connect(dataSocket, SIGNAL(disconnected()), this, SLOT(browserDataDisconnected()));
+    connect(dataSocket, SIGNAL(readyRead()), this, SLOT(readBrowserData()));
+}
+
+void ProxyServ::browserDataDisconnected()
+{
+    qDebug() << "Browser data line disconnected!";
+}
+
+void ProxyServ::readBrowserData()
+{
+    qDebug() << "Browser data line ready to be read!";
 }
 

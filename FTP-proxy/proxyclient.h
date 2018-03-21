@@ -4,6 +4,7 @@
 #include <QObject>
 #include <QTcpSocket>
 #include <QHostAddress>
+#include <QTcpServer>
 
 #define FTP_SERV_ADDRESS "127.0.0.1"
 #define FTP_SERV_PORT 27015
@@ -18,17 +19,31 @@ public:
     explicit ProxyClient(QObject *parent = nullptr);
 
 signals:
-    void toProxyServer(QByteArray);
+    void toProxyServerCommand(QByteArray);
+    void toProxyServerData(QByteArray);
+
+    void createDataServer(int port);
 
 public slots:
     void connectToFtpServer();
+
     void connectedToFtpServer();
     void disconnectedFtpServer();
+    void readServerCommand();
+
+    void connectedToDataServer();
+    void disconnectedFromDataServer();
     void readServerData();
-    void readProxyServerData(QByteArray data);
+
+    void readProxyServerCommand(QByteArray data);
+
 
 private:
-    QTcpSocket* socket;
+    QTcpSocket* socket{NULL};
+    QTcpSocket* dataSocket{NULL};
+
+    int getPassivePort(QByteArray* message);
+    //void createDataServer(QByteArray* message);
 };
 
 #endif // PROXYCLIENT_H

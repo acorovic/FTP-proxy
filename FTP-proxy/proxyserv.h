@@ -17,17 +17,26 @@ public:
 
 signals:
     void notifyBrowserConnected();
-    void toProxyClient(QByteArray);
+    void toProxyClientCommand(QByteArray);
 
 public slots:
     void browserConnected();
     void browserDisconnected();
+    void readBrowserCommand();
+
+    void createDataServ(int portNo);
+    void browserDataConnected();
+    void browserDataDisconnected();
     void readBrowserData();
+
+    void readProxyClientCommand(QByteArray data);
     void readProxyClientData(QByteArray data);
 
 private:
     QTcpServer* server{NULL};
     QTcpSocket* socket{NULL};
+    QTcpServer* dataServer{NULL};
+    QTcpSocket* dataSocket{NULL};
 
     bool isServerStarted{false};
 };
