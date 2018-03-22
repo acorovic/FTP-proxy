@@ -62,15 +62,19 @@ void ProxyClient::readServerCommand()
         connect(dataSocket, SIGNAL(connected()), this, SLOT(connectedToDataServer()));
         connect(dataSocket, SIGNAL(disconnected()), this, SLOT(disconnectedFromDataServer()));
 
-        // Change to parsed address
+        // Connect to original data socket
         dataServAddress.setAddress(FTP_SERV_ADDRESS);
         portNo = getPassivePort(&receivedData);
         dataSocket->connectToHost(dataServAddress, portNo);
 
-        char* out = changeData.data();
-        out[changeData.indexOf(')') - 3] = '8';
+//        setDataProxyPort(&changeData);
+//        char* out = changeData.data();
+//        out[changeData.indexOf(')') - 3] = '8';
+        changeData = setDataProxyPort(&changeData);
+        qDebug() << "Testing port setting";
+        qDebug() << changeData;
 
-        emit createDataServer(8*256);
+        emit createDataServer(DATA_SERV_PORT);
         emit toProxyServerCommand(changeData);
     }
     else if (receivedData.contains("Transfer complete") && dataRead == false)
@@ -157,5 +161,38 @@ int ProxyClient::getPassivePort(QByteArray *message)
     qDebug() << "Port offset: " << portOffset;
 
     return portStr.toInt() * 256 + portOffset.toInt();
+}
+
+QByteArray ProxyClient::setDataProxyPort(QByteArray *message)
+{
+    QByteArray firstPart = *message;
+    int firstPartEnd = 0;
+    int commaNo = 0;
+
+    for (auto it = message->indexOf('('); it < message->indexOf(')'); it++)
+    {
+        if (message->at(it) == ',')
+        {
+            if (++commaNo == 4)
+            {
+                firstPartEnd = it;
+            }
+        }
+    }
+
+    firstPart.truncate(firstPartEnd + 1);
+
+    int portNo = DATA_SERV_PORT/256;
+    int portOffset = DATA_SERV_PORT - portNo*256;
+    QByteArray byteArray;
+
+    byteArray.setNum(portNo);
+    firstPart.append(byteArray);
+    firstPart.append(',');
+    byteArray.setNum(portOffset);
+    firstPart.append(byteArray);
+    firstPart.append(")\r\n");
+
+    return firstPart;
 }
 

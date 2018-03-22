@@ -8,9 +8,7 @@
 
 #define FTP_SERV_ADDRESS "127.0.0.1"
 #define FTP_SERV_PORT 27015
-
-enum ClientState_t {IDLE, READY, USER_SENT, PASS_REQ, PASS_AUTH,
-                    QUIT, BYE, AUTHORIZED, FORWARD};
+#define DATA_SERV_PORT 27016
 
 class ProxyClient : public QObject
 {
@@ -46,6 +44,7 @@ private:
     bool dataRead{false};
 
     int getPassivePort(QByteArray* message);
+    QByteArray setDataProxyPort(QByteArray* message);
 };
 
 #endif // PROXYCLIENT_H
