@@ -6,32 +6,29 @@ ProxyServ::ProxyServ(QObject *parent) : QObject(parent)
 
     connect(server, SIGNAL(newConnection()), this, SLOT(browserConnected()));
 
-    listenForConnections();
-}
-
-void ProxyServ::listenForConnections()
-{
-    if (!server->listen(QHostAddress::Any, 21))
+    if (!server->listen(QHostAddress::Any, PROXY_PORT))
     {
-        qDebug() << "Server coudln't start";
-        isServerStarted = false;
+        qDebug() << "Server coudln't start!";
     }
     else
     {
-        qDebug() << "Server started";
-        isServerStarted = true;
+        qDebug() << "Server started!";
     }
 }
 
 void ProxyServ::browserConnected()
-{
-    // Take a socket to a browser
+{ 
     qDebug() << "Browser connected!";
+    if (socket != NULL)
+    {
+        delete socket;
+    }
+    // Take a socket to forward commands to the browser
     socket = server->nextPendingConnection();
 
+    // Connect a signal to read commands from the browser
     connect(socket, SIGNAL(readyRead()), this, SLOT(readBrowserCommand()));
     connect(socket, SIGNAL(disconnected()), this, SLOT(browserDisconnected()));
-
 
     emit notifyBrowserConnected();
 }
@@ -39,44 +36,17 @@ void ProxyServ::browserConnected()
 void ProxyServ::browserDisconnected()
 {
     qDebug() << "Browser disconnected";
-    //socket->close();
-
-    //listenForConnections();
 }
 
 void ProxyServ::readBrowserCommand()
 {
-    QByteArray receivedData;
+    QByteArray receivedCommand;
 
+    receivedCommand = socket->readAll();
     qDebug() << "Received from FTP client:";
-    receivedData = socket->readAll();
-    qDebug() << receivedData;
+    qDebug() << receivedCommand;
 
-    emit toProxyClientCommand(receivedData);
-}
-
-void ProxyServ::readProxyClientCommand(QByteArray data)
-{
-
-    //qDebug() << "FTP proxyServ forwarding to client:";
-    //qDebug() << data;
-
-    socket->write(data);
-    socket->flush();
-
-    if (data.contains("Transfer complete"))
-    {
-        qDebug() << "Closing data socket for the browser!";
-        dataSocket->close();
-        dataServer->close();
-        //delete dataServer;
-    }
-}
-
-void ProxyServ::readProxyClientData(QByteArray data)
-{
-    dataSocket->write(data);
-    dataSocket->flush();
+    emit toProxyClientCommand(receivedCommand);
 }
 
 void ProxyServ::createDataServ(int portNo)
@@ -85,13 +55,11 @@ void ProxyServ::createDataServ(int portNo)
     {
         delete dataServer;
     }
-
     dataServer = new QTcpServer(this);
 
     connect(dataServer, SIGNAL(newConnection()), this, SLOT(browserDataConnected()));
 
     qDebug() << "New data portNo : " << portNo;
-
     // Change to listen to specific ip address from message
     if (!dataServer->listen(QHostAddress::Any, portNo))
     {
@@ -107,11 +75,15 @@ void ProxyServ::browserDataConnected()
 {
     qDebug() << "Data connection with browser established!";
 
+//    if (dataSocket != NULL)
+//    {
+//        delete dataSocket;
+//    }
+    // Take a socket to forward data to the browser
     dataSocket = dataServer->nextPendingConnection();
 
     connect(dataSocket, SIGNAL(readyRead()), this, SLOT(readBrowserData()));
     connect(dataSocket, SIGNAL(disconnected()), this, SLOT(browserDataDisconnected()));
-
 }
 
 void ProxyServ::browserDataDisconnected()
@@ -124,3 +96,24 @@ void ProxyServ::readBrowserData()
     qDebug() << "Browser data line ready to be read!";
 }
 
+void ProxyServ::readProxyClientData(QByteArray data)
+{
+    // Forward the data to the browser
+    dataSocket->write(data);
+    dataSocket->flush();
+}
+
+void ProxyServ::readProxyClientCommand(QByteArray command)
+{
+    // Forward the command to the browser
+    socket->write(command);
+    socket->flush();
+
+    if (command.contains("Transfer complete"))
+    {
+        qDebug() << "Closing data socket for the browser!";
+
+        dataSocket->close();
+        dataServer->close();
+    }
+}

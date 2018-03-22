@@ -41,7 +41,6 @@ private:
     QTcpSocket* dataSocket{NULL};
 
     bool connected{false};
-    bool dataRead{false};
 
     int getPassivePort(QByteArray* message);
     QByteArray setDataProxyPort(QByteArray* message);

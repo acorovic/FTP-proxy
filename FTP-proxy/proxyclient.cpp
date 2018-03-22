@@ -1,8 +1,5 @@
 #include "proxyclient.h"
 
-//static bool connected = false;
-//static bool dataRead = false;
-
 ProxyClient::ProxyClient(QObject *parent) : QObject(parent)
 {
 
@@ -33,10 +30,6 @@ void ProxyClient::disconnectedFtpServer()
 {
     qDebug() << "Disconnected from FTP server!";
     connected = false;
-
-    //delete socket;
-
-    //connectToFtpServer();
 }
 
 void ProxyClient::readServerCommand()
@@ -54,8 +47,6 @@ void ProxyClient::readServerCommand()
         QByteArray changeData(receivedData);
         QHostAddress dataServAddress;
         int portNo;
-
-        dataRead = false;
 
         dataSocket = new QTcpSocket(this);
         connect(dataSocket, SIGNAL(readyRead()), this, SLOT(readServerData()));
@@ -77,12 +68,12 @@ void ProxyClient::readServerCommand()
         emit createDataServer(DATA_SERV_PORT);
         emit toProxyServerCommand(changeData);
     }
-    else if (receivedData.contains("Transfer complete") && dataRead == false)
+    else if (receivedData.contains("Transfer complete"))
     {
         qDebug() << "Upao------------------------------";
 
         dataSocket->waitForReadyRead();
-        emit toProxyServerCommand(receivedData);
+        //emit toProxyServerCommand(receivedData);
     }
     else
     {
@@ -113,6 +104,8 @@ void ProxyClient::connectedToDataServer()
 void ProxyClient::disconnectedFromDataServer()
 {
     qDebug() << "Disconnected from data server!";
+    QByteArray message("226 Transfer complete\r\n");
+    emit toProxyServerCommand(message);
 }
 
 void ProxyClient::readServerData()
@@ -121,8 +114,6 @@ void ProxyClient::readServerData()
     QByteArray receivedData;
 
     receivedData = dataSocket->readAll();
-
-    dataRead = true;
 
     emit toProxyServerData(receivedData);
 }
