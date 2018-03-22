@@ -42,8 +42,10 @@ private:
     QTcpSocket* socket{NULL};
     QTcpSocket* dataSocket{NULL};
 
+    bool connected{false};
+    bool dataRead{false};
+
     int getPassivePort(QByteArray* message);
-    //void createDataServer(QByteArray* message);
 };
 
 #endif // PROXYCLIENT_H

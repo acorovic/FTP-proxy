@@ -29,8 +29,9 @@ void ProxyServ::browserConnected()
     qDebug() << "Browser connected!";
     socket = server->nextPendingConnection();
 
-    connect(socket, SIGNAL(disconnected()), this, SLOT(browserDisconnected()));
     connect(socket, SIGNAL(readyRead()), this, SLOT(readBrowserCommand()));
+    connect(socket, SIGNAL(disconnected()), this, SLOT(browserDisconnected()));
+
 
     emit notifyBrowserConnected();
 }
@@ -108,8 +109,9 @@ void ProxyServ::browserDataConnected()
 
     dataSocket = dataServer->nextPendingConnection();
 
-    connect(dataSocket, SIGNAL(disconnected()), this, SLOT(browserDataDisconnected()));
     connect(dataSocket, SIGNAL(readyRead()), this, SLOT(readBrowserData()));
+    connect(dataSocket, SIGNAL(disconnected()), this, SLOT(browserDataDisconnected()));
+
 }
 
 void ProxyServ::browserDataDisconnected()

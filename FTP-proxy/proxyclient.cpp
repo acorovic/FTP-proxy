@@ -1,6 +1,7 @@
 #include "proxyclient.h"
 
-static bool connected = false;
+//static bool connected = false;
+//static bool dataRead = false;
 
 ProxyClient::ProxyClient(QObject *parent) : QObject(parent)
 {
@@ -12,9 +13,10 @@ void ProxyClient::connectToFtpServer()
     socket = new QTcpSocket(this);
     qDebug() << "Connecting to FTP server...";
 
+    connect(socket, SIGNAL(readyRead()), this, SLOT(readServerCommand()));
     connect(socket, SIGNAL(connected()), this, SLOT(connectedToFtpServer()));
     connect(socket, SIGNAL(disconnected()), this, SLOT(disconnectedFtpServer()));
-    connect(socket, SIGNAL(readyRead()), this, SLOT(readServerCommand()));
+
     QHostAddress ftp_serv_address;
     ftp_serv_address.setAddress(FTP_SERV_ADDRESS);
 
@@ -53,10 +55,12 @@ void ProxyClient::readServerCommand()
         QHostAddress dataServAddress;
         int portNo;
 
+        dataRead = false;
+
         dataSocket = new QTcpSocket(this);
+        connect(dataSocket, SIGNAL(readyRead()), this, SLOT(readServerData()));
         connect(dataSocket, SIGNAL(connected()), this, SLOT(connectedToDataServer()));
         connect(dataSocket, SIGNAL(disconnected()), this, SLOT(disconnectedFromDataServer()));
-        connect(dataSocket, SIGNAL(readyRead()), this, SLOT(readServerData()));
 
         // Change to parsed address
         dataServAddress.setAddress(FTP_SERV_ADDRESS);
@@ -69,12 +73,13 @@ void ProxyClient::readServerCommand()
         emit createDataServer(8*256);
         emit toProxyServerCommand(changeData);
     }
-//    else if (receivedData.contains("Transfer complete"))
-//    {
-//        qDebug() << "Upao------------------------------";
-//        dataSocket->close();
-//        emit toProxyServerCommand(receivedData);
-//    }
+    else if (receivedData.contains("Transfer complete") && dataRead == false)
+    {
+        qDebug() << "Upao------------------------------";
+
+        dataSocket->waitForReadyRead();
+        emit toProxyServerCommand(receivedData);
+    }
     else
     {
         emit toProxyServerCommand(receivedData);
@@ -112,6 +117,9 @@ void ProxyClient::readServerData()
     QByteArray receivedData;
 
     receivedData = dataSocket->readAll();
+
+    dataRead = true;
+
     emit toProxyServerData(receivedData);
 }
 
