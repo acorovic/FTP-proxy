@@ -75,10 +75,6 @@ void ProxyServ::browserDataConnected()
 {
     qDebug() << "Data connection with browser established!";
 
-//    if (dataSocket != NULL)
-//    {
-//        delete dataSocket;
-//    }
     // Take a socket to forward data to the browser
     dataSocket = dataServer->nextPendingConnection();
 
@@ -99,6 +95,7 @@ void ProxyServ::readBrowserData()
 void ProxyServ::readProxyClientData(QByteArray data)
 {
     // Forward the data to the browser
+    qDebug() << "Forwarding data to the browser!";
     dataSocket->write(data);
     dataSocket->flush();
 }

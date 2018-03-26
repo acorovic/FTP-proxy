@@ -58,40 +58,40 @@ void ProxyClient::readServerCommand()
         portNo = getPassivePort(&receivedData);
         dataSocket->connectToHost(dataServAddress, portNo);
 
-//        setDataProxyPort(&changeData);
-//        char* out = changeData.data();
-//        out[changeData.indexOf(')') - 3] = '8';
+        // Change the PASSV message (port for data server in proxyServ)
         changeData = setDataProxyPort(&changeData);
-        qDebug() << "Testing port setting";
+        qDebug() << "PASSV message to be forwarded to the browser:";
         qDebug() << changeData;
 
         emit createDataServer(DATA_SERV_PORT);
+
+        // Forward changed message to proxyServ
         emit toProxyServerCommand(changeData);
     }
     else if (receivedData.contains("Transfer complete"))
     {
-        qDebug() << "Upao------------------------------";
-
+        // Wait for the data to be received
+        // Transfer complete message will be sent when all data is received (disconnectedFromDataServer())
         dataSocket->waitForReadyRead();
-        //emit toProxyServerCommand(receivedData);
     }
     else
     {
+        // Just forward the command
         emit toProxyServerCommand(receivedData);
     }
 }
 
-void ProxyClient::readProxyServerCommand(QByteArray data)
+void ProxyClient::readProxyServerCommand(QByteArray command)
 {
-    // Sometimes socket closes so need to fake BYE message
-    if (data.contains("QUIT") && !connected)
+    // Sometimes socket closes earlier so need we need to mannualy send Bye message
+    if (command.contains("QUIT") && !connected)
     {
-        qDebug("!!!!!!!!!!!!!!!!!!!!!!!!!!! NE MOZE UPISATI");
         emit toProxyServerCommand("221 Bye\r\n");
     }
+    // Just forward the command to the FTP server
     else
     {
-        socket->write(data);
+        socket->write(command);
         socket->flush();
     }
 }
@@ -104,6 +104,7 @@ void ProxyClient::connectedToDataServer()
 void ProxyClient::disconnectedFromDataServer()
 {
     qDebug() << "Disconnected from data server!";
+
     QByteArray message("226 Transfer complete\r\n");
     emit toProxyServerCommand(message);
 }
@@ -114,7 +115,6 @@ void ProxyClient::readServerData()
     QByteArray receivedData;
 
     receivedData = dataSocket->readAll();
-
     emit toProxyServerData(receivedData);
 }
 
